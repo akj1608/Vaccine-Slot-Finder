@@ -1,4 +1,8 @@
+import 'dart:convert';
+
+import 'package:cowin_flutter/slots.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 void main() => runApp(new MyApp());
 
@@ -7,7 +11,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(brightness: Brightness.light, primaryColor: Colors.teal),
+      theme: ThemeData(brightness: Brightness.dark, primaryColor: Colors.teal),
       home: Home(),
     );
   }
@@ -19,57 +23,89 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  TextEditingController pincodeController = TextEditingController();
+  //------------------------------------------------
+  TextEditingController pincodecontroller = TextEditingController();
   TextEditingController daycontroller = TextEditingController();
-  String dropdownValue = 'One';
+  String dropdownValue = '01';
+  List slots = [];
+  //-----------------------------------------------------
+
+  fetchslots() async {
+    await http
+        .get(Uri.parse(
+            'https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/findByPin?pincode=' +
+                pincodecontroller.text +
+                '&date=' +
+                daycontroller.text +
+                '%2F' +
+                dropdownValue +
+                '%2F2021'))
+        .then((value) {
+      Map result = jsonDecode(value.body);
+      setState(() {
+        slots = result['sessions'];
+      });
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => Slot(
+                    slots: slots,
+                  )));
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(title: Center(child: Text('Vaccine Slot Finder'))),
-        body: SingleChildScrollView(
-          child: Container(
-            padding: EdgeInsets.all(10),
-            height: MediaQuery.of(context).size.height,
-            width: MediaQuery.of(context).size.width,
-            child: Column(
+      appBar: AppBar(title: Text('Vaccination Slots')),
+      body: SingleChildScrollView(
+        child: Container(
+          padding: EdgeInsets.all(10),
+          height: MediaQuery.of(context).size.height,
+          width: MediaQuery.of(context).size.width,
+          child: Column(children: [
+            Container(
+              margin: EdgeInsets.all(20),
+              height: 250,
+              child: Image.asset('assets/vaccine.png'),
+            ),
+            TextField(
+              controller: pincodecontroller,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              decoration: InputDecoration(hintText: 'Enter PIN Code'),
+            ),
+            Row(
               children: [
-                Container(
-                  margin: EdgeInsets.all(20),
-                  height: 250,
-                  child: Image.asset('assets/vaccine.png'),
-                ),
-                TextField(
-                  controller: pincodeController,
-                  keyboardType: TextInputType.number,
-                  maxLength: 6,
-                  decoration: InputDecoration(
-                    hintText: 'Enter your PIN Code',
+                Expanded(
+                  child: Container(
+                    height: 60,
+                    child: TextField(
+                      controller: daycontroller,
+                      decoration: InputDecoration(hintText: 'Enter Date'),
+                    ),
                   ),
                 ),
-                Row(
-                  children: [
-                    Expanded(
-                      child:TextField(
-                        controller:daycontroller,
-                        decoration: InputDecoration(hintText: 'Enter the day'),
-                      ),
+                SizedBox(width: 10),
+                Expanded(
+                    child: Container(
+                  height: 52,
+                  child: DropdownButton<String>(
+                    isExpanded: true,
+                    value: dropdownValue,
+                    icon: const Icon(Icons.arrow_drop_down),
+                    iconSize: 24,
+                    elevation: 16,
+                    underline: Container(
+                      color: Colors.grey.shade400,
+                      height: 2,
                     ),
-                    Expanded(
-                      child: DropdownButton<String>(
-      value: dropdownValue,
-      icon: const Icon(Icons.arrow_downward),
-      elevation: 16,
-      style: const TextStyle(color: Colors.deepPurple),
-      underline: Container(
-        height: 2,
-        color: Colors.deepPurpleAccent,
-      ),
-      onChanged: (String newValue) {
-        setState(() {
-          dropdownValue = newValue;
-        });
-      },
-      items: <String>[
+                    onChanged: (String newValue) {
+                      setState(() {
+                        dropdownValue = newValue;
+                      });
+                    },
+                    items: <String>[
                       '01',
                       '02',
                       '03',
@@ -82,20 +118,32 @@ class _HomeState extends State<Home> {
                       '10',
                       '11',
                       '12'
-                    ]
-          .map<DropdownMenuItem<String>>((String value) {
-        return DropdownMenuItem<String>(
-          value: value,
-          child: Text(value),
-        );
-      }).toList(),
-    ),
-                    ),
-                  ],
-                )
-                
-              ] ),
-          ),
-        ));
+                    ].map<DropdownMenuItem<String>>((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                  ),
+                ))
+              ],
+            ),
+            SizedBox(height: 20),
+            Container(
+                width: double.infinity,
+                height: 45,
+                child: ElevatedButton(
+                  style: ButtonStyle(
+                      backgroundColor: MaterialStateProperty.all(
+                          Theme.of(context).primaryColor)),
+                  onPressed: () {
+                    fetchslots();
+                  },
+                  child: Text('Find Slots'),
+                ))
+          ]),
+        ),
+      ),
+    );
   }
 }
