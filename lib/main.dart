@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:cowin_flutter/slots.dart';
+import 'package:vaccine_slot_finder/slots.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
